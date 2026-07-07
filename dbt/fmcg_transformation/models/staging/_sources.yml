@@ -1,0 +1,68 @@
+-- ══════════════════════════════════════════════════════════════════════════════
+-- Source Definition: Project A's PostgreSQL Raw Tables
+-- These tables are populated by CDC from ClickHouse / Kafka Connect
+-- ══════════════════════════════════════════════════════════════════════════════
+
+version: 2
+
+sources:
+  - name: raw_fmcg
+    description: >
+      Raw FMCG POS transaction data from Project A.
+      Data flows: POS Terminal → Kafka → ClickHouse (hot path).
+      This source represents data synced/mirrored to PostgreSQL for
+      transformation and governance purposes.
+    database: fmcg
+    schema: public
+    tables:
+      - name: pos_transactions
+        description: >
+          Raw POS transaction events from Vinamilk retail network.
+          Each row represents a single product purchase at a point-of-sale terminal.
+        columns:
+          - name: transaction_id
+            description: Unique identifier for each transaction (UUID)
+            data_tests:
+              - not_null
+              - unique
+          - name: pos_id
+            description: Point-of-sale terminal identifier (POS_0001 to POS_1000)
+          - name: product_id
+            description: Product SKU identifier (SKU_001 to SKU_012)
+            data_tests:
+              - not_null
+          - name: product_name
+            description: Human-readable product name
+          - name: category
+            description: Product category (dairy, yogurt, drinking_yogurt, juice, condensed_milk)
+            data_tests:
+              - not_null
+              - accepted_values:
+                  values: ['dairy', 'yogurt', 'drinking_yogurt', 'juice', 'condensed_milk']
+          - name: quantity
+            description: Number of units purchased (1-5)
+            data_tests:
+              - not_null
+          - name: unit_price
+            description: Price per unit in VND
+            data_tests:
+              - not_null
+          - name: total_amount
+            description: Total transaction amount (quantity × unit_price) in VND
+            data_tests:
+              - not_null
+          - name: region
+            description: Sales region code (HN, HCM, DN, CT, HP, BD)
+            data_tests:
+              - not_null
+              - accepted_values:
+                  values: ['HN', 'HCM', 'DN', 'CT', 'HP', 'BD']
+          - name: store_type
+            description: Type of retail outlet
+            data_tests:
+              - accepted_values:
+                  values: ['supermarket', 'convenience', 'wet_market', 'mini_mart']
+          - name: timestamp
+            description: Transaction timestamp in UTC
+            data_tests:
+              - not_null

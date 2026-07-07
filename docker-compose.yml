@@ -1,0 +1,7 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Data Platform Governance & Observability Stack
+# Main docker-compose — includes OpenMetadata + dbt/Airflow services
+# ══════════════════════════════════════════════════════════════════════════════
+include:
+  - path: services/openmetadata/docker-compose.yml
+  - path: services/airflow/docker-compose.yml

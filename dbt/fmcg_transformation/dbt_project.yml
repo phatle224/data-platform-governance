@@ -1,0 +1,27 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# dbt Project Configuration — FMCG Transformation
+# Transforms raw POS transaction data from Project A into analytics-ready marts
+# ══════════════════════════════════════════════════════════════════════════════
+
+name: 'fmcg_transformation'
+version: '1.0.0'
+config-version: 2
+
+profile: 'fmcg_transformation'
+
+# Directories
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Variables
+vars:
+  # Minimum date for filtering test data
+  min_transaction_date: '2024-01-01'

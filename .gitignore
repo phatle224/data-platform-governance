@@ -1,0 +1,27 @@
+# Environment
+.env
+
+# Docker volumes
+docker-volume/
+logs/
+
+# dbt
+dbt/fmcg_transformation/target/
+dbt/fmcg_transformation/dbt_packages/
+dbt/fmcg_transformation/logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

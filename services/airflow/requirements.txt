@@ -1,0 +1,9 @@
+# dbt for PostgreSQL transformations
+dbt-postgres==1.8.2
+
+# OpenLineage integration with Airflow
+apache-airflow-providers-openlineage==1.12.2
+openlineage-airflow==1.25.0
+
+# OpenLineage dbt integration
+openlineage-dbt==1.25.0

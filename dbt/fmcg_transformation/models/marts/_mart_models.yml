@@ -1,0 +1,46 @@
+version: 2
+
+models:
+  - name: mart_sales_by_region
+    description: >
+      Daily sales aggregation by region, product category, and store type.
+      Used for executive dashboards and regional performance monitoring.
+      Lineage: raw_fmcg.pos_transactions → stg_pos_transactions → mart_sales_by_region
+    columns:
+      - name: transaction_date
+        description: Date of the transactions
+        data_tests:
+          - not_null
+      - name: region
+        description: Region code
+        data_tests:
+          - not_null
+      - name: total_transactions
+        description: Count of transactions for the day/region/category
+        data_tests:
+          - not_null
+      - name: total_revenue
+        description: Sum of transaction amounts in VND
+        data_tests:
+          - not_null
+
+  - name: mart_product_performance
+    description: >
+      Product-level performance metrics with category rankings and revenue share.
+      Used for category management and product portfolio analysis.
+      Lineage: raw_fmcg.pos_transactions → stg_pos_transactions → mart_product_performance
+    columns:
+      - name: transaction_date
+        description: Date of the transactions
+        data_tests:
+          - not_null
+      - name: product_id
+        description: Product SKU identifier
+        data_tests:
+          - not_null
+      - name: total_revenue
+        description: Total revenue for the product on that date
+        data_tests:
+          - not_null
+      - name: category_revenue_rank
+        description: Rank within category by revenue (1 = highest)

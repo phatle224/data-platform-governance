@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: stg_pos_transactions
+    description: >
+      Cleaned and standardized POS transactions from Project A.
+      Adds region names, time dimensions, and transaction value tiers.
+    columns:
+      - name: transaction_id
+        description: Unique transaction identifier
+        data_tests:
+          - not_null
+          - unique
+      - name: total_amount
+        description: Transaction total in VND (must be positive)
+        data_tests:
+          - not_null
+      - name: product_category
+        description: Standardized product category
+      - name: region
+        description: Region code
+      - name: transaction_date
+        description: Date extracted from timestamp
