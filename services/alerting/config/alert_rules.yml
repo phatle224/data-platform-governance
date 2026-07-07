@@ -1,0 +1,84 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Prometheus Alert Rules — Airflow Pipeline SLO Monitoring
+# These rules trigger alerts when DAGs fail or violate SLO thresholds
+# ══════════════════════════════════════════════════════════════════════════════
+
+groups:
+  - name: airflow_pipeline_alerts
+    interval: 30s
+    rules:
+      # ── Rule 1: AirflowDagFailed ──────────────────────────────────────────
+      # Fires when any Airflow DAG run has failed in the last 5 minutes
+      - alert: AirflowDagFailed
+        expr: |
+          increase(airflow_dagrun_duration_failed_count[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          team: data-engineering
+          project: data-platform-governance
+        annotations:
+          summary: "🚨 Airflow DAG Failed"
+          description: |
+            An Airflow DAG run has failed in the last 5 minutes.
+            Check the Airflow UI at http://localhost:8082 for details.
+            This may indicate a data pipeline issue that requires immediate attention.
+          dashboard: "http://localhost:8082"
+          runbook: "Check Airflow UI → DAG Runs → Filter by 'failed' status"
+
+      # ── Rule 2: PipelineSLOViolated ───────────────────────────────────────
+      # Fires when any DAG run takes longer than 5 minutes (300 seconds)
+      # This simulates an SLO violation for pipeline freshness
+      - alert: PipelineSLOViolated
+        expr: |
+          airflow_dagrun_duration_success_sum / airflow_dagrun_duration_success_count > 300
+        for: 1m
+        labels:
+          severity: warning
+          team: data-engineering
+          project: data-platform-governance
+        annotations:
+          summary: "⚠️ Pipeline SLO Violated — DAG runtime exceeds 5 minutes"
+          description: |
+            A DAG run has exceeded the 5-minute SLO threshold.
+            Average duration: {{ $value | printf "%.1f" }}s
+            This indicates the data pipeline is slower than expected.
+            Review dbt model performance or database query optimization.
+          dashboard: "http://localhost:8082"
+
+      # ── Rule 3: AirflowSchedulerHeartbeat ─────────────────────────────────
+      # Fires when the Airflow scheduler stops sending heartbeat metrics
+      - alert: AirflowSchedulerDown
+        expr: |
+          up{job="airflow-statsd"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: data-engineering
+          project: data-platform-governance
+        annotations:
+          summary: "🔴 Airflow Scheduler Unreachable"
+          description: |
+            The StatsD exporter is not receiving metrics from Airflow.
+            The scheduler may be down or unresponsive.
+            Check: docker logs gov-airflow-scheduler
+
+      # ── Rule 4: HighDagTaskFailureRate ────────────────────────────────────
+      # Fires when task failure rate exceeds 20% in the last 15 minutes
+      - alert: HighDagTaskFailureRate
+        expr: |
+          (
+            rate(airflow_ti_failures[15m])
+            / (rate(airflow_ti_failures[15m]) + rate(airflow_ti_successes[15m]))
+          ) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          team: data-engineering
+          project: data-platform-governance
+        annotations:
+          summary: "⚠️ High Task Failure Rate (>20%)"
+          description: |
+            More than 20% of Airflow tasks are failing in the last 15 minutes.
+            Current failure rate: {{ $value | printf "%.1f" }}%
+            Review failing tasks in the Airflow UI.

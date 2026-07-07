@@ -1,0 +1,29 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Grafana Datasource Provisioning — Loki
+# This file should be added to Project A's Grafana provisioning directory
+# OR manually configured via Grafana UI → Data Sources → Add → Loki
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Option 1: Copy this file to Project A's Grafana provisioning:
+#   cp services/logging/grafana/provisioning/datasources/loki.yaml \
+#      D:/project/fmcg-real-time-analytics/services/monitoring/grafana/provisioning/datasources/
+#
+# Option 2: Manually add in Grafana UI at http://localhost:3000
+#   → Configuration → Data Sources → Add → Loki
+#   → URL: http://gov-loki:3100
+#   → Save & Test
+# ══════════════════════════════════════════════════════════════════════════════
+
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    uid: loki-gov
+    orgId: 1
+    url: http://gov-loki:3100
+    editable: true
+    isDefault: false
+    jsonData:
+      maxLines: 1000
+      timeout: 60

@@ -1,0 +1,260 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Centralized log viewer for FMCG Data Platform — Project A & B containers",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "📊 Log Volume by Project",
+      "description": "Rate of log lines per project (A vs B)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki-gov" },
+      "targets": [
+        {
+          "expr": "sum by(project) (rate({project=~\".+\"} [5m]))",
+          "legendFormat": "{{project}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "fillOpacity": 20,
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto"
+          },
+          "unit": "logs/s"
+        }
+      }
+    },
+    {
+      "title": "🔴 Error Rate by Service",
+      "description": "Rate of ERROR level logs per service",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki-gov" },
+      "targets": [
+        {
+          "expr": "sum by(service) (rate({level=\"ERROR\"} [5m]))",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 2
+          },
+          "unit": "errors/s"
+        }
+      }
+    },
+    {
+      "title": "🚨 Error Log Stream — All Services",
+      "description": "Live stream of ERROR and WARN level logs from all containers",
+      "type": "logs",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 6 },
+      "datasource": { "type": "loki", "uid": "loki-gov" },
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "expr": "{level=~\"ERROR|WARN|WARNING|CRITICAL|FATAL\"} | line_format \"[{{.container}}] {{.message}}\"",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "📋 ClickHouse Logs (Project A)",
+      "description": "All logs from fmcg-clickhouse container",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "loki", "uid": "loki-gov" },
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "expr": "{container=\"fmcg-clickhouse\"}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "📋 Kafka Logs (Project A)",
+      "description": "All logs from fmcg-kafka container",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "loki", "uid": "loki-gov" },
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "expr": "{container=\"fmcg-kafka\"}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "📋 Airflow Scheduler Logs (Project B)",
+      "description": "Logs from gov-airflow-scheduler — dbt orchestration",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": { "type": "loki", "uid": "loki-gov" },
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "expr": "{container=\"gov-airflow-scheduler\"}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "📋 OpenMetadata Server Logs (Project B)",
+      "description": "Logs from gov-openmetadata-server",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "datasource": { "type": "loki", "uid": "loki-gov" },
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "expr": "{container=\"gov-openmetadata-server\"}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "📊 Log Level Distribution",
+      "description": "Breakdown of log levels across all services",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 },
+      "datasource": { "type": "loki", "uid": "loki-gov" },
+      "targets": [
+        {
+          "expr": "sum by(level) (count_over_time({project=~\".+\"} [1h]))",
+          "legendFormat": "{{level}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "📊 Log Volume by Container",
+      "description": "Top containers by log volume in the last hour",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 32 },
+      "datasource": { "type": "loki", "uid": "loki-gov" },
+      "targets": [
+        {
+          "expr": "topk(10, sum by(container) (count_over_time({project=~\".+\"} [1h])))",
+          "legendFormat": "{{container}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["loki", "logs", "governance", "observability"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "loki", "uid": "loki-gov" },
+        "definition": "label_values(project)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Project",
+        "multi": true,
+        "name": "project",
+        "query": "label_values(project)",
+        "refresh": 2,
+        "type": "query"
+      },
+      {
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "loki", "uid": "loki-gov" },
+        "definition": "label_values({project=~\"$project\"}, service)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Service",
+        "multi": true,
+        "name": "service",
+        "query": "label_values({project=~\"$project\"}, service)",
+        "refresh": 2,
+        "type": "query"
+      },
+      {
+        "current": { "selected": false, "text": "All", "value": "$__all" },
+        "datasource": { "type": "loki", "uid": "loki-gov" },
+        "definition": "label_values(level)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Log Level",
+        "multi": true,
+        "name": "level",
+        "query": "label_values(level)",
+        "refresh": 2,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Data Platform — Centralized Logs",
+  "uid": "gov-centralized-logs",
+  "version": 1
+}

@@ -75,6 +75,11 @@ services:
       # OpenLineage integration
       AIRFLOW__OPENLINEAGE__TRANSPORT: '{"type": "http", "url": "http://gov-openmetadata-server:8585/api/v1/lineage/openlineage", "endpoint": ""}'
       AIRFLOW__OPENLINEAGE__DISABLED: "false"
+      # StatsD metrics → Phase 3 Alerting
+      AIRFLOW__METRICS__STATSD_ON: "true"
+      AIRFLOW__METRICS__STATSD_HOST: gov-statsd-exporter
+      AIRFLOW__METRICS__STATSD_PORT: 9125
+      AIRFLOW__METRICS__STATSD_PREFIX: airflow
       # dbt environment variables
       DBT_POSTGRES_HOST: ${FMCG_POSTGRES_HOST:-fmcg-postgres}
       DBT_POSTGRES_PORT: ${FMCG_POSTGRES_PORT:-5432}
@@ -115,6 +120,11 @@ services:
       # OpenLineage integration
       AIRFLOW__OPENLINEAGE__TRANSPORT: '{"type": "http", "url": "http://gov-openmetadata-server:8585/api/v1/lineage/openlineage", "endpoint": ""}'
       AIRFLOW__OPENLINEAGE__DISABLED: "false"
+      # StatsD metrics → Phase 3 Alerting
+      AIRFLOW__METRICS__STATSD_ON: "true"
+      AIRFLOW__METRICS__STATSD_HOST: gov-statsd-exporter
+      AIRFLOW__METRICS__STATSD_PORT: 9125
+      AIRFLOW__METRICS__STATSD_PREFIX: airflow
       # dbt environment variables
       DBT_POSTGRES_HOST: ${FMCG_POSTGRES_HOST:-fmcg-postgres}
       DBT_POSTGRES_PORT: ${FMCG_POSTGRES_PORT:-5432}

@@ -1,0 +1,84 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Phase 3: SLO Alerting Stack
+# Prometheus (scrapes Airflow metrics) + StatsD Exporter + AlertManager → Slack
+# ══════════════════════════════════════════════════════════════════════════════
+
+volumes:
+  prometheus-gov-data:
+
+services:
+  # ── StatsD Exporter (receives Airflow StatsD → exposes Prometheus metrics) ──
+  statsd-exporter:
+    image: prom/statsd-exporter:v0.26.1
+    container_name: gov-statsd-exporter
+    restart: unless-stopped
+    command:
+      - "--statsd.listen-udp=:9125"
+      - "--statsd.listen-tcp=:9125"
+      - "--web.listen-address=:9102"
+      - "--statsd.mapping-config=/etc/statsd-exporter/mapping.yml"
+    volumes:
+      - ./config/statsd-mapping.yml:/etc/statsd-exporter/mapping.yml:ro
+    ports:
+      - "9102:9102"   # Prometheus metrics endpoint
+      - "9125:9125/udp"  # StatsD UDP receiver
+    networks:
+      - gov-internal
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9102/metrics"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Prometheus (scrape Airflow metrics from StatsD Exporter) ─────────────────
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: gov-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+    ports:
+      - "${GOV_PROMETHEUS_PORT:-9095}:9090"
+    volumes:
+      - prometheus-gov-data:/prometheus
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+    networks:
+      - gov-internal
+    depends_on:
+      statsd-exporter:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── AlertManager (route alerts to Slack) ─────────────────────────────────────
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: gov-alertmanager
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+      - "--web.external-url=http://localhost:9093"
+    ports:
+      - "${ALERTMANAGER_PORT:-9093}:9093"
+    volumes:
+      - ./config/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    networks:
+      - gov-internal
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+# ── Networks ──────────────────────────────────────────────────────────────────
+networks:
+  gov-internal:
+    driver: bridge

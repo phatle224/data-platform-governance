@@ -1,0 +1,96 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Promtail Configuration — Docker Container Log Collector
+# Discovers and collects logs from Docker containers across Project A & B
+# Tags logs with container name, project, and service labels
+# ══════════════════════════════════════════════════════════════════════════════
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+  log_level: info
+
+# ── Push logs to Loki ─────────────────────────────────────────────────────────
+clients:
+  - url: http://gov-loki:3100/loki/api/v1/push
+    tenant_id: ""
+    batchwait: 1s
+    batchsize: 1048576  # 1MB
+
+positions:
+  filename: /tmp/positions.yaml
+
+# ── Scrape Configs — Docker Container Discovery ──────────────────────────────
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          # Only collect logs from containers with specific name prefixes
+          - name: name
+            values:
+              # Project A containers
+              - "fmcg-clickhouse"
+              - "fmcg-kafka"
+              - "fmcg-postgres"
+              - "fmcg-trino"
+              - "fmcg-grafana"
+              - "fmcg-prometheus"
+              - "fmcg-kafka-connect"
+              - "fmcg-zookeeper"
+              # Project B containers
+              - "gov-openmetadata-server"
+              - "gov-ingestion"
+              - "gov-airflow-webserver"
+              - "gov-airflow-scheduler"
+              - "gov-mysql"
+              - "gov-elasticsearch"
+              - "gov-prometheus"
+              - "gov-alertmanager"
+              - "gov-loki"
+
+    relabel_configs:
+      # ── Extract container name ──────────────────────────────────────────────
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: "container"
+
+      # ── Tag Project A vs Project B ──────────────────────────────────────────
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/fmcg-(.*)"
+        target_label: "project"
+        replacement: "project-a"
+
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/gov-(.*)"
+        target_label: "project"
+        replacement: "project-b"
+
+      # ── Extract service name from container name ────────────────────────────
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(?:fmcg|gov)-(.*)"
+        target_label: "service"
+
+      # ── Add compose project label ──────────────────────────────────────────
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_project"]
+        target_label: "compose_project"
+
+      # ── Add compose service label ──────────────────────────────────────────
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: "compose_service"
+
+    pipeline_stages:
+      # ── Parse Docker JSON logs ─────────────────────────────────────────────
+      - docker: {}
+
+      # ── Detect log level from common patterns ──────────────────────────────
+      - regex:
+          expression: "(?i)(?P<level>ERROR|WARN|WARNING|INFO|DEBUG|FATAL|CRITICAL)"
+      - labels:
+          level:
+
+      # ── Drop DEBUG logs to save storage ────────────────────────────────────
+      - match:
+          selector: '{level="DEBUG"}'
+          action: drop
+          drop_counter_reason: "debug_log_filtered"

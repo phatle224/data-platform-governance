@@ -1,6 +1,6 @@
 .PHONY: help up down restart logs ps \
-       openmetadata-up airflow-up \
-       init-postgres dbt-run dbt-test
+       openmetadata-up airflow-up alerting-up logging-up \
+       init-postgres dbt-run dbt-test provision-grafana
 
 # ── Default ────────────────────────────────────────────────────────────────────
 help:
@@ -22,10 +22,13 @@ help:
 	@echo "  Individual Stacks:"
 	@echo "    make openmetadata-up Start OpenMetadata stack only"
 	@echo "    make airflow-up      Start Airflow + dbt stack only"
+	@echo "    make alerting-up     Start Alerting stack only (Prometheus/Alertmanager)"
+	@echo "    make logging-up      Start Centralized Logging stack only (Loki/Promtail)"
 	@echo ""
-	@echo "  Bootstrap Commands:"
+	@echo "  Bootstrap & Integration Commands:"
 	@echo "    make init-postgres   Create & seed pos_transactions in Project A PG"
 	@echo "    make check-network   Verify Project A network is available"
+	@echo "    make provision-grafana Integrate Loki and Log Dashboard with Project A Grafana"
 	@echo ""
 	@echo "  dbt Commands:"
 	@echo "    make dbt-run         Run dbt models inside Airflow container"
@@ -36,6 +39,10 @@ help:
 	@echo "    OpenMetadata UI:     http://localhost:8585  (admin/admin)"
 	@echo "    OM Ingestion:        http://localhost:8081  (admin/admin)"
 	@echo "    Airflow UI:          http://localhost:8082  (admin/admin)"
+	@echo "    Prometheus (Gov):    http://localhost:9095"
+	@echo "    AlertManager:        http://localhost:9093"
+	@echo "    Loki API:            http://localhost:3100"
+	@echo "    Grafana (Project A): http://localhost:3000"
 	@echo ""
 
 # ── Copy env ───────────────────────────────────────────────────────────────────
@@ -76,6 +83,18 @@ airflow-up: check-network
 airflow-down:
 	docker compose -f services/airflow/docker-compose.yml down
 
+alerting-up: check-network
+	docker compose -f services/alerting/docker-compose.yml up -d
+
+alerting-down:
+	docker compose -f services/alerting/docker-compose.yml down
+
+logging-up: check-network
+	docker compose -f services/logging/docker-compose.yml up -d
+
+logging-down:
+	docker compose -f services/logging/docker-compose.yml down
+
 # ── Bootstrap: Initialize PostgreSQL source ────────────────────────────────────
 init-postgres:
 	@echo "Creating pos_transactions table and seeding data in Project A PostgreSQL..."
@@ -84,6 +103,16 @@ init-postgres:
 
 verify-postgres:
 	docker exec fmcg-postgres psql -U postgres -d fmcg -c "SELECT count(*) as row_count FROM pos_transactions; SELECT region, count(*) as tx_count, sum(total_amount) as revenue FROM pos_transactions GROUP BY region ORDER BY revenue DESC;"
+
+# ── Grafana Integration ────────────────────────────────────────────────────────
+provision-grafana:
+	@echo "1. Provisioning Loki datasource into Project A Grafana..."
+	copy services\logging\grafana\provisioning\datasources\loki.yaml D:\project\fmcg-real-time-analytics\services\monitoring\grafana\provisioning\datasources\loki.yaml
+	@echo "2. Copying Centralized Logging Dashboard into Project A Grafana..."
+	copy services\logging\grafana\dashboards\centralized_logs.json D:\project\fmcg-real-time-analytics\services\monitoring\grafana\dashboards\centralized_logs.json
+	@echo "3. Restarting Project A Grafana to load new configuration..."
+	docker restart fmcg-grafana
+	@echo "Integration completed! Open Grafana at http://localhost:3000 to view the 'Data Platform — Centralized Logs' dashboard."
 
 # ── dbt Commands (run inside Airflow container) ───────────────────────────────
 dbt-run:
@@ -112,3 +141,14 @@ status:
 	@echo ""
 	@echo "=== Elasticsearch ==="
 	@curl -s http://localhost:19200/_cluster/health?pretty 2>nul || echo " ✗ Elasticsearch not reachable"
+	@echo ""
+	@echo "=== Alerting (Phase 3) ==="
+	@curl -s http://localhost:9095/-/healthy 2>nul && echo " ✓ Prometheus (Gov) healthy" || echo " ✗ Prometheus (Gov) not reachable"
+	@curl -s http://localhost:9093/-/healthy 2>nul && echo " ✓ AlertManager healthy" || echo " ✗ AlertManager not reachable"
+	@echo ""
+	@echo "=== Logging (Phase 4) ==="
+	@curl -s http://localhost:3100/ready 2>nul && echo " ✓ Loki healthy" || echo " ✗ Loki not ready/reachable"
+	@echo ""
+	@echo "=== Grafana (Project A) ==="
+	@curl -s http://localhost:3000/api/health 2>nul && echo " ✓ Grafana healthy" || echo " ✗ Grafana not reachable"
+

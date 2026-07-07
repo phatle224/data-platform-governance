@@ -1,0 +1,130 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# StatsD → Prometheus Mapping for Apache Airflow Metrics
+# Maps Airflow's StatsD metric names to Prometheus-compatible metric names
+# Ref: https://airflow.apache.org/docs/apache-airflow/stable/administration-and-deployment/logging-monitoring/metrics.html
+# ══════════════════════════════════════════════════════════════════════════════
+
+mappings:
+  # ── DAG Run Metrics ─────────────────────────────────────────────────────────
+
+  # DAG run duration (success)
+  - match: "airflow.dagrun.duration.success.*"
+    name: "airflow_dagrun_duration_success"
+    labels:
+      dag_id: "$1"
+    timer_type: "histogram"
+    buckets: [10, 30, 60, 120, 300, 600, 1800, 3600]
+
+  # DAG run duration (failed)
+  - match: "airflow.dagrun.duration.failed.*"
+    name: "airflow_dagrun_duration_failed"
+    labels:
+      dag_id: "$1"
+    timer_type: "histogram"
+    buckets: [10, 30, 60, 120, 300, 600, 1800, 3600]
+
+  # DAG run scheduling delay
+  - match: "airflow.dagrun.schedule_delay.*"
+    name: "airflow_dagrun_schedule_delay"
+    labels:
+      dag_id: "$1"
+    timer_type: "histogram"
+    buckets: [1, 5, 10, 30, 60, 120, 300]
+
+  # ── Task Instance Metrics ───────────────────────────────────────────────────
+
+  # Task instance duration
+  - match: "airflow.dag.*.*.duration"
+    name: "airflow_task_duration"
+    labels:
+      dag_id: "$1"
+      task_id: "$2"
+    timer_type: "histogram"
+    buckets: [5, 10, 30, 60, 120, 300, 600]
+
+  # Task instance successes
+  - match: "airflow.ti.successes"
+    name: "airflow_ti_successes"
+
+  # Task instance failures
+  - match: "airflow.ti.failures"
+    name: "airflow_ti_failures"
+
+  # Task start counter
+  - match: "airflow.ti.start.*.*"
+    name: "airflow_ti_start"
+    labels:
+      dag_id: "$1"
+      task_id: "$2"
+
+  # Task finish counter
+  - match: "airflow.ti.finish.*.*.*"
+    name: "airflow_ti_finish"
+    labels:
+      dag_id: "$1"
+      task_id: "$2"
+      state: "$3"
+
+  # ── Scheduler Metrics ──────────────────────────────────────────────────────
+
+  # Scheduler heartbeat
+  - match: "airflow.scheduler_heartbeat"
+    name: "airflow_scheduler_heartbeat"
+
+  # Scheduler loop duration
+  - match: "airflow.scheduler.scheduler_loop_duration"
+    name: "airflow_scheduler_loop_duration"
+    timer_type: "histogram"
+    buckets: [0.1, 0.5, 1, 2, 5, 10]
+
+  # Number of orphaned tasks cleared
+  - match: "airflow.scheduler.orphaned_tasks.cleared"
+    name: "airflow_scheduler_orphaned_tasks_cleared"
+
+  # Number of orphaned tasks adopted
+  - match: "airflow.scheduler.orphaned_tasks.adopted"
+    name: "airflow_scheduler_orphaned_tasks_adopted"
+
+  # ── DAG Processing Metrics ─────────────────────────────────────────────────
+
+  # Total parse time for all DAGs
+  - match: "airflow.dag_processing.total_parse_time"
+    name: "airflow_dag_processing_total_parse_time"
+
+  # Number of import errors
+  - match: "airflow.dag_processing.import_errors"
+    name: "airflow_dag_processing_import_errors"
+
+  # ── Pool Metrics ───────────────────────────────────────────────────────────
+
+  - match: "airflow.pool.open_slots.*"
+    name: "airflow_pool_open_slots"
+    labels:
+      pool: "$1"
+
+  - match: "airflow.pool.queued_slots.*"
+    name: "airflow_pool_queued_slots"
+    labels:
+      pool: "$1"
+
+  - match: "airflow.pool.running_slots.*"
+    name: "airflow_pool_running_slots"
+    labels:
+      pool: "$1"
+
+  # ── Executor Metrics ───────────────────────────────────────────────────────
+
+  - match: "airflow.executor.open_slots"
+    name: "airflow_executor_open_slots"
+
+  - match: "airflow.executor.queued_tasks"
+    name: "airflow_executor_queued_tasks"
+
+  - match: "airflow.executor.running_tasks"
+    name: "airflow_executor_running_tasks"
+
+  # ── Catch-all (drop unmapped to avoid cardinality explosion) ────────────────
+  - match: "."
+    match_type: regex
+    action: drop
+    name: "dropped"

@@ -1,10 +1,17 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# Data Platform Governance & Observability Stack
-# Main docker-compose — includes all service stacks
+# Grafana Dashboard Provisioning — Governance Dashboards
+# If using auto-provisioning, copy to Grafana's provisioning directory
 # ══════════════════════════════════════════════════════════════════════════════
-include:
-  - path: services/openmetadata/docker-compose.yml
-  - path: services/airflow/docker-compose.yml
-  - path: services/alerting/docker-compose.yml
-  - path: services/logging/docker-compose.yml
 
+apiVersion: 1
+
+providers:
+  - name: governance-dashboards
+    orgId: 1
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/governance
+      foldersFromFilesStructure: false

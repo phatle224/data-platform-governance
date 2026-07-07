@@ -1,0 +1,55 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Phase 4: Centralized Logging Stack
+# Loki (log storage) + Promtail (log collector from Docker containers)
+# Collects logs from both Project A and Project B containers
+# ══════════════════════════════════════════════════════════════════════════════
+
+volumes:
+  loki-data:
+
+services:
+  # ── Loki (Log aggregation and storage) ──────────────────────────────────────
+  loki:
+    image: grafana/loki:2.9.9
+    container_name: gov-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    volumes:
+      - loki-data:/loki
+      - ./config/loki-config.yml:/etc/loki/loki-config.yml:ro
+    networks:
+      - gov-internal
+      - fmcg-network  # So Grafana from Project A can query Loki
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3100/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── Promtail (Log collector — reads Docker container logs) ──────────────────
+  promtail:
+    image: grafana/promtail:2.9.9
+    container_name: gov-promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./config/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      # Mount Docker socket to discover containers
+      - //var/run/docker.sock:/var/run/docker.sock:ro
+      # Mount Docker container logs directory (Windows Docker Desktop path)
+      - //var/lib/docker/containers:/var/lib/docker/containers:ro
+    networks:
+      - gov-internal
+    depends_on:
+      loki:
+        condition: service_healthy
+
+# ── Networks ──────────────────────────────────────────────────────────────────
+networks:
+  gov-internal:
+    driver: bridge
+  fmcg-network:
+    name: fmcg_fmcg-network
+    external: true
